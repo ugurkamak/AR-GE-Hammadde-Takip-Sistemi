@@ -1,4 +1,3 @@
-```tsx
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -6,13 +5,16 @@ import { useAuth } from '../context/AuthContext'
 export default function Login() {
   const { signIn, session } = useAuth()
   const nav = useNavigate()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (session) nav('/', { replace: true })
+    if (session) {
+      nav('/', { replace: true })
+    }
   }, [session, nav])
 
   const submit = async (e: React.FormEvent) => {
@@ -87,13 +89,5 @@ export default function Login() {
             />
           </div>
 
-          <button className="btn-primary btn-lg" disabled={busy}>
-            {busy ? 'Bekleyin…' : 'Giris yap'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
+          <button
 ```
-
