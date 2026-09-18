@@ -17,7 +17,7 @@ export default function Login() {
     }
   }, [session, nav])
 
-  const submit = async (e: React.FormEvent) => {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
     setBusy(true)
@@ -34,6 +34,7 @@ export default function Login() {
 
   return (
     <div className="login">
+
       <div className="login-art">
         <div className="swatches" aria-hidden>
           <i style={{ background: '#e0a526' }} />
@@ -53,13 +54,20 @@ export default function Login() {
 
       <div className="login-form">
         <form className="inner" onSubmit={submit}>
-          <h2 style={{ marginBottom: 4 }}>Giris yap</h2>
+
+          <h2 style={{ marginBottom: 4 }}>
+            Giris yap
+          </h2>
 
           <p className="muted small mb">
             Kurum e-posta adresiniz ile giris yapin.
           </p>
 
-          {err && <div className="alert alert-err">{err}</div>}
+          {err && (
+            <div className="alert alert-err">
+              {err}
+            </div>
+          )}
 
           <div className="field">
             <label>
@@ -90,4 +98,16 @@ export default function Login() {
           </div>
 
           <button
-```
+            type="submit"
+            className="btn-primary btn-lg"
+            disabled={busy}
+          >
+            {busy ? 'Bekleyin...' : 'Giris yap'}
+          </button>
+
+        </form>
+      </div>
+
+    </div>
+  )
+}
