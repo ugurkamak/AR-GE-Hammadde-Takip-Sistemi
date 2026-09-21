@@ -96,9 +96,6 @@ export default function Labels() {
     [rows, term],
   )
 
-  /*
-   * Sadece bir numune seçiliyor.
-   */
   const chosen = rows.filter((m) =>
     selected.includes(m.id),
   )
@@ -110,9 +107,6 @@ export default function Labels() {
     setEditing(false)
   }
 
-  /*
-   * Düzenleme ekranını aç
-   */
   const startEdit = () => {
     if (!current) return
 
@@ -128,16 +122,10 @@ export default function Labels() {
     setEditing(true)
   }
 
-  /*
-   * Düzenlemeyi iptal et
-   */
   const cancelEdit = () => {
     setEditing(false)
   }
 
-  /*
-   * Değişiklikleri kaydet
-   */
   const saveEdit = async () => {
     if (!current) return
 
@@ -208,9 +196,6 @@ export default function Labels() {
     alert('Etiket bilgileri güncellendi.')
   }
 
-  /*
-   * Tarihi Türkçe formatta göster
-   */
   const formatDate = (value: string) => {
     if (!value) return '-'
 
@@ -225,12 +210,8 @@ export default function Labels() {
 
   return (
     <>
-      {/* =====================================================
-          ÜST MENÜ
-      ====================================================== */}
-
+      {/* SAYFA BAŞLIĞI */}
       <div className="page-head no-print">
-
         <div>
           <h1>QR Etiketleri</h1>
 
@@ -241,7 +222,6 @@ export default function Labels() {
         </div>
 
         <div className="btn-row">
-
           {current && !editing && (
             <>
               <button
@@ -277,22 +257,13 @@ export default function Labels() {
               </button>
             </>
           )}
-
         </div>
-
       </div>
 
-
-      {/* =====================================================
-          ARAMA / NUMUNE SEÇME
-      ====================================================== */}
-
+      {/* NUMUNE SEÇİM ALANI */}
       <div className="card mb no-print">
-
         <div className="card-b">
-
           <div className="row mb">
-
             <div
               className="field search-wide"
               style={{ margin: 0 }}
@@ -301,9 +272,7 @@ export default function Labels() {
 
               <input
                 value={q}
-                onChange={(e) =>
-                  setQ(e.target.value)
-                }
+                onChange={(e) => setQ(e.target.value)}
                 placeholder="Hammadde, numune, lot veya raf"
               />
             </div>
@@ -323,9 +292,7 @@ export default function Labels() {
             >
               Seçimi temizle
             </button>
-
           </div>
-
 
           <div
             className="table-wrap"
@@ -334,11 +301,8 @@ export default function Labels() {
               overflowY: 'auto',
             }}
           >
-
             <table>
-
               <thead>
-
                 <tr>
                   <th></th>
                   <th>Numune</th>
@@ -346,13 +310,10 @@ export default function Labels() {
                   <th>Lot</th>
                   <th>Raf</th>
                 </tr>
-
               </thead>
 
               <tbody>
-
                 {filtered.map((m) => (
-
                   <tr
                     key={m.id}
                     onClick={() =>
@@ -366,9 +327,7 @@ export default function Labels() {
                           : undefined,
                     }}
                   >
-
                     <td>
-
                       <input
                         type="radio"
                         readOnly
@@ -377,7 +336,6 @@ export default function Labels() {
                           width: 16,
                         }}
                       />
-
                     </td>
 
                     <td className="mono">
@@ -393,47 +351,28 @@ export default function Labels() {
                     </td>
 
                     <td>
-
                       <span className="chip">
                         {m.shelf_code || '-'}
                       </span>
-
                     </td>
-
                   </tr>
-
                 ))}
-
               </tbody>
-
             </table>
-
           </div>
 
-
           <p className="small muted mt">
-
             {current
               ? `Seçilen numune: ${current.sample_no}`
               : 'Henüz numune seçilmedi.'}
-
           </p>
-
         </div>
-
       </div>
 
-
-      {/* =====================================================
-          DÜZENLEME ALANI
-      ====================================================== */}
-
+      {/* DÜZENLEME FORMU */}
       {editing && current && (
-
         <div className="card mb no-print">
-
           <div className="card-b">
-
             <h3>
               Etiket Bilgilerini Düzenle
             </h3>
@@ -446,9 +385,7 @@ export default function Labels() {
                 gap: 16,
               }}
             >
-
               <div className="field">
-
                 <label>
                   Hammadde adı *
                 </label>
@@ -459,12 +396,9 @@ export default function Labels() {
                     setEditName(e.target.value)
                   }
                 />
-
               </div>
 
-
               <div className="field">
-
                 <label>
                   Firma / tedarikçi *
                 </label>
@@ -475,12 +409,9 @@ export default function Labels() {
                     setEditSupplier(e.target.value)
                   }
                 />
-
               </div>
 
-
               <div className="field">
-
                 <label>
                   Geliş tarihi *
                 </label>
@@ -492,12 +423,9 @@ export default function Labels() {
                     setEditArrivalDate(e.target.value)
                   }
                 />
-
               </div>
 
-
               <div className="field">
-
                 <label>
                   Gelen miktar *
                 </label>
@@ -511,12 +439,9 @@ export default function Labels() {
                     setEditInitialQuantity(e.target.value)
                   }
                 />
-
               </div>
 
-
               <div className="field">
-
                 <label>
                   Birim *
                 </label>
@@ -528,12 +453,9 @@ export default function Labels() {
                   }
                   placeholder="kg, L, adet..."
                 />
-
               </div>
 
-
               <div className="field">
-
                 <label>
                   Raf kodu
                 </label>
@@ -545,224 +467,150 @@ export default function Labels() {
                   }
                   placeholder="Örn: C-01-01-01"
                 />
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       )}
 
-
-      {/* =====================================================
-          A4 ÜZERİNDE TEK A6 ETİKET
-      ====================================================== */}
-
+      {/* A4 ÜZERİNDE TEK A6 ETİKET */}
       {current && (
-
         <div className="print-page">
-
           <div className="single-label">
 
             {/* QR */}
-
             <div className="label-qr">
-
               <QrImage
                 sampleNo={current.sample_no}
                 size={280}
               />
-
             </div>
 
-
-            {/* QR ALTINDA NUMUNE */}
-
+            {/* NUMUNE NO */}
             <div className="label-sample">
               {current.sample_no}
             </div>
 
-
             {/* BAŞLIK */}
-
             <div className="label-title">
               AR-GE HAMMADDE
             </div>
 
-
             {/* HAMMADDE ADI */}
-
             <div className="label-name">
-
               {editing
                 ? editName
                 : current.name}
-
             </div>
 
-
             {/* BİLGİLER */}
-
             <div className="label-info">
 
-              {/* Hammadde adı */}
-
               <div>
-
                 <span>
                   Hammadde adı
                 </span>
 
                 <strong>
-
                   {editing
                     ? editName
                     : current.name}
-
                 </strong>
-
               </div>
 
-
-              {/* Firma / tedarikçi */}
-
               <div>
-
                 <span>
                   Firma / tedarikçi
                 </span>
 
                 <strong>
-
                   {editing
                     ? editSupplier
                     : current.supplier}
-
                 </strong>
-
               </div>
 
-
-              {/* Geliş tarihi */}
-
               <div>
-
                 <span>
                   Geliş tarihi
                 </span>
 
                 <strong>
-
                   {editing
                     ? formatDate(editArrivalDate)
                     : formatDate(current.arrival_date)}
-
                 </strong>
-
               </div>
 
-
-              {/* Gelen miktar */}
-
               <div>
-
                 <span>
                   Gelen miktar
                 </span>
 
                 <strong>
-
                   {editing
                     ? editInitialQuantity
                     : current.initial_quantity}
-
                   {' '}
-
                   {editing
                     ? editUnit
                     : current.unit}
-
                 </strong>
-
               </div>
 
-
-              {/* Birim */}
-
               <div>
-
                 <span>
                   Birim
                 </span>
 
                 <strong>
-
                   {editing
                     ? editUnit
                     : current.unit}
-
                 </strong>
-
               </div>
 
+            </div>
 
-              {/* RAF KODU */}
+            {/* RAF KODU - ETİKETİN ALTINA SABİT */}
+            <div className="label-shelf">
 
-              <div className="label-shelf">
+              <div className="label-shelf-title">
+                RAF KODU
+              </div>
 
-                <span>
-                  Raf kodu
-                </span>
-
-                <strong>
-
-                  {editing
-                    ? editShelfCode || '-'
-                    : current.shelf_code || '-'}
-
-                </strong>
-
+              <div className="label-shelf-code">
+                {editing
+                  ? editShelfCode || '-'
+                  : current.shelf_code || '-'}
               </div>
 
             </div>
 
           </div>
-
         </div>
-
       )}
 
-
       {/* SEÇİM YOK */}
-
       {!current && (
-
         <div className="card no-print">
-
           <div className="empty">
-
             <strong>
               Etiket seçilmedi
             </strong>
 
             Yukarıdaki listeden bir numune seçin.
-
           </div>
-
         </div>
-
       )}
-
-
-      {/* STİLLER */}
 
       <style>{`
 
-        .print-page {
+        /* =========================
+           A4 SAYFA
+        ========================= */
 
+        .print-page {
           width: 210mm;
           height: 297mm;
 
@@ -774,12 +622,14 @@ export default function Labels() {
           justify-content: center;
 
           background: white;
-
         }
 
 
-        .single-label {
+        /* =========================
+           A6 ETİKET
+        ========================= */
 
+        .single-label {
           width: 105mm;
           height: 148mm;
 
@@ -802,12 +652,14 @@ export default function Labels() {
           color: #111;
 
           overflow: hidden;
-
         }
 
 
-        .label-qr {
+        /* =========================
+           QR
+        ========================= */
 
+        .label-qr {
           width: 55mm;
           height: 55mm;
 
@@ -818,21 +670,22 @@ export default function Labels() {
 
           margin-bottom: 3mm;
 
+          flex-shrink: 0;
         }
 
-
         .label-qr img {
-
           width: 55mm !important;
           height: 55mm !important;
 
           object-fit: contain;
-
         }
 
 
-        .label-sample {
+        /* =========================
+           NUMUNE NO
+        ========================= */
 
+        .label-sample {
           font-family: monospace;
 
           font-size: 5mm;
@@ -845,11 +698,15 @@ export default function Labels() {
 
           text-align: center;
 
+          flex-shrink: 0;
         }
 
 
-        .label-title {
+        /* =========================
+           BAŞLIK
+        ========================= */
 
+        .label-title {
           width: 100%;
 
           text-align: center;
@@ -864,11 +721,15 @@ export default function Labels() {
 
           padding-bottom: 2mm;
 
+          flex-shrink: 0;
         }
 
 
-        .label-name {
+        /* =========================
+           HAMMADDE ADI
+        ========================= */
 
+        .label-name {
           width: 100%;
 
           text-align: center;
@@ -881,11 +742,15 @@ export default function Labels() {
 
           word-break: break-word;
 
+          flex-shrink: 0;
         }
 
 
-        .label-info {
+        /* =========================
+           BİLGİLER
+        ========================= */
 
+        .label-info {
           width: 100%;
 
           display: flex;
@@ -898,11 +763,10 @@ export default function Labels() {
 
           padding-top: 5mm;
 
+          flex-shrink: 0;
         }
 
-
         .label-info div {
-
           display: flex;
 
           justify-content: space-between;
@@ -914,21 +778,15 @@ export default function Labels() {
           font-size: 4mm;
 
           min-height: 5mm;
-
         }
 
-
         .label-info span {
-
           font-weight: 700;
 
           flex-shrink: 0;
-
         }
 
-
         .label-info strong {
-
           font-family: monospace;
 
           font-size: 4mm;
@@ -938,43 +796,63 @@ export default function Labels() {
           word-break: break-word;
 
           max-width: 58%;
-
         }
 
+
+        /* =========================
+           RAF KODU
+        ========================= */
 
         .label-shelf {
+          width: 100%;
 
-          border-top: 1px solid #111;
+          margin-top: auto;
 
-          padding-top: 3mm;
+          padding-top: 5mm;
 
-          margin-top: 1mm;
+          border-top: 2px solid #111;
 
+          text-align: center;
+
+          flex-shrink: 0;
         }
 
+        .label-shelf-title {
+          font-size: 3.5mm;
 
-        .label-shelf strong {
+          font-weight: 700;
 
-          font-size: 4.5mm;
+          letter-spacing: 0.4mm;
+
+          margin-bottom: 2mm;
+        }
+
+        .label-shelf-code {
+          font-family: monospace;
+
+          font-size: 7mm;
 
           font-weight: 900;
 
+          letter-spacing: 0.5mm;
+
+          line-height: 1.1;
         }
 
+
+        /* =========================
+           YAZDIRMA
+        ========================= */
 
         @media print {
 
           @page {
-
             size: A4 portrait;
             margin: 0;
-
           }
-
 
           html,
           body {
-
             width: 210mm;
             height: 297mm;
 
@@ -982,23 +860,18 @@ export default function Labels() {
             padding: 0 !important;
 
             background: white !important;
-
           }
-
 
           .no-print {
-
             display: none !important;
-
           }
 
-
           .print-page {
-
             width: 210mm;
             height: 297mm;
 
             margin: 0;
+
             padding: 0;
 
             display: flex;
@@ -1007,19 +880,15 @@ export default function Labels() {
             justify-content: center;
 
             background: white;
-
           }
 
-
           .single-label {
-
             width: 105mm;
             height: 148mm;
 
             border: 1px solid #111;
 
             box-shadow: none;
-
           }
 
         }
