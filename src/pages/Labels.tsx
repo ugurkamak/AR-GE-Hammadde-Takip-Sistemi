@@ -102,6 +102,95 @@ export default function Labels() {
 
   const current = chosen[0] ?? null
 
+  /*
+   * RAF SİSTEMİ
+   *
+   * A = Yeşil Raf
+   * B = Mavi Raf
+   * C = Kırmızı Raf
+   */
+  const getShelfInfo = (material: Material | null) => {
+    if (!material) {
+      return {
+        section: '',
+        name: 'Raf',
+        colorClass: 'shelf-default',
+        code: '-',
+      }
+    }
+
+    const section = String(material.section || '')
+      .trim()
+      .toUpperCase()
+
+    let name = 'Raf'
+    let colorClass = 'shelf-default'
+
+    if (section === 'A') {
+      name = 'Yeşil Raf'
+      colorClass = 'shelf-green'
+    } else if (section === 'B') {
+      name = 'Mavi Raf'
+      colorClass = 'shelf-blue'
+    } else if (section === 'C') {
+      name = 'Kırmızı Raf'
+      colorClass = 'shelf-red'
+    }
+
+    /*
+     * Raf kodunu otomatik oluştur.
+     *
+     * Örnek:
+     * C + 1 + 1 + 1
+     * = C-01-01-01
+     *
+     * Eğer raf numaraları mevcut değilse eski
+     * shelf_code değeri korunur.
+     */
+    const shelfNo =
+      material.shelf_no !== null &&
+      material.shelf_no !== undefined
+        ? Number(material.shelf_no)
+        : null
+
+    const levelNo =
+      material.level_no !== null &&
+      material.level_no !== undefined
+        ? Number(material.level_no)
+        : null
+
+    const binNo =
+      material.bin_no !== null &&
+      material.bin_no !== undefined
+        ? Number(material.bin_no)
+        : null
+
+    let code = material.shelf_code || '-'
+
+    if (
+      section &&
+      shelfNo !== null &&
+      levelNo !== null &&
+      binNo !== null &&
+      !Number.isNaN(shelfNo) &&
+      !Number.isNaN(levelNo) &&
+      !Number.isNaN(binNo)
+    ) {
+      code = `${section}-${String(shelfNo).padStart(2, '0')}-${String(
+        levelNo,
+      ).padStart(2, '0')}-${String(binNo).padStart(2, '0')}`
+    }
+
+    return {
+      section,
+      name,
+      colorClass,
+      code,
+    }
+  }
+
+  const shelfInfo = getShelfInfo(current)
+
   const selectMaterial = (id: string) => {
     setSelected([id])
     setEditing(false)
@@ -110,6 +199,8 @@ export default function Labels() {
   const startEdit = () => {
     if (!current) return
 
+    const info = getShelfInfo(current)
+
     setEditName(current.name ?? '')
     setEditSupplier(current.supplier ?? '')
     setEditArrivalDate(current.arrival_date ?? '')
@@ -117,7 +208,7 @@ export default function Labels() {
       String(current.initial_quantity ?? ''),
     )
     setEditUnit(current.unit ?? '')
-    setEditShelfCode(current.shelf_code ?? '')
+    setEditShelfCode(info.code === '-' ? '' : info.code)
 
     setEditing(true)
   }
@@ -440,7 +531,10 @@ export default function Labels() {
       )}
 
       {current && !editing && (
-        <div className="no-print" style={{ marginBottom: 20 }}>
+        <div
+          className="no-print"
+          style={{ marginBottom: 20 }}
+        >
           <div
             style={{
               padding: '10px 14px',
@@ -455,7 +549,7 @@ export default function Labels() {
             {' — '}
             {current.name}
             {' — Raf: '}
-            <strong>{current.shelf_code || '-'}</strong>
+            <strong>{shelfInfo.code}</strong>
           </div>
         </div>
       )}
@@ -500,24 +594,35 @@ export default function Labels() {
                 </strong>
               </div>
 
-<div className="label-row">
-  <span>Gelen miktar</span>
-  <strong>
-    {current.initial_quantity ?? '-'}
-  </strong>
-</div>
-
-<div className="label-row">
-  <span>Birim</span>
-  <strong>
-    {current.unit || '-'}
-  </strong>
-</div>
-
-              <div className="label-row shelf-row">
-                <span>Raf kodu</span>
+              <div className="label-row">
+                <span>Gelen miktar</span>
                 <strong>
-                  {current.shelf_code || '-'}
+                  {current.initial_quantity ?? '-'}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Birim</span>
+                <strong>
+                  {current.unit || '-'}
+                </strong>
+              </div>
+
+              <div className="label-row shelf-place-row">
+                <span>Raf Yeri</span>
+                <strong
+                  className={shelfInfo.colorClass}
+                >
+                  {shelfInfo.section
+                    ? `${shelfInfo.section} · ${shelfInfo.name}`
+                    : '-'}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Raf Kodu</span>
+                <strong className="shelf-code-value">
+                  {shelfInfo.code}
                 </strong>
               </div>
             </div>
@@ -627,6 +732,32 @@ export default function Labels() {
             align-items: center;
             overflow-wrap: anywhere;
             word-break: break-word;
+          }
+
+          .shelf-green {
+            color: #16803c !important;
+            font-weight: 800 !important;
+          }
+
+          .shelf-blue {
+            color: #1769aa !important;
+            font-weight: 800 !important;
+          }
+
+          .shelf-red {
+            color: #d62828 !important;
+            font-weight: 800 !important;
+          }
+
+          .shelf-default {
+            color: #111 !important;
+            font-weight: 800 !important;
+          }
+
+          .shelf-code-value {
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.3px;
           }
 
           .label-footer {
