@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import QrImage from '../components/QrImage'
@@ -7,138 +7,140 @@ import type { Material } from '../lib/types'
 export default function Labels() {
   const [params] = useSearchParams()
 
-  const [material, setMaterial] = useState<Material | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState<Material[]>([])
+  const [selected, setSelected] = useState<string[]>([])
+  const [q, setQ] = useState('')
   const [editing, setEditing] = useState(false)
 
-  const [name, setName] = useState('')
-  const [sampleNo, setSampleNo] = useState('')
-  const [lotNo, setLotNo] = useState('')
-  const [shelfCode, setShelfCode] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editSampleNo, setEditSampleNo] = useState('')
+  const [editLotNo, setEditLotNo] = useState('')
+  const [editShelfCode, setEditShelfCode] = useState('')
 
   useEffect(() => {
-    const sampleNoParam = params.get('numune')
-
-    if (!sampleNoParam) {
-      setLoading(false)
-      return
-    }
-
-    const loadMaterial = async () => {
+    const load = async () => {
       const { data, error } = await supabase
         .from('materials_view')
         .select('*')
-        .eq('sample_no', sampleNoParam)
-        .maybeSingle()
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error(error)
-        setLoading(false)
         return
       }
 
-      if (data) {
-        const m = data as Material
+      const list = (data as Material[]) ?? []
+      setRows(list)
 
-        setMaterial(m)
-        setName(m.name ?? '')
-        setSampleNo(m.sample_no ?? '')
-        setLotNo(m.lot_no ?? '')
-        setShelfCode(m.shelf_code ?? '')
+      const pre = params.get('numune')
+
+      if (pre) {
+        const hit = list.find((m) => m.sample_no === pre)
+
+        if (hit) {
+          setSelected([hit.id])
+        }
       }
-
-      setLoading(false)
     }
 
-    loadMaterial()
+    load()
   }, [params])
 
-  const startEdit = () => {
-    if (!material) return
+  const term = q.trim().toLocaleLowerCase('tr')
 
-    setName(material.name ?? '')
-    setSampleNo(material.sample_no ?? '')
-    setLotNo(material.lot_no ?? '')
-    setShelfCode(material.shelf_code ?? '')
+  const filtered = useMemo(
+    () =>
+      rows.filter(
+        (m) =>
+          !term ||
+          `${m.name} ${m.sample_no} ${m.lot_no} ${m.supplier} ${m.shelf_code}`
+            .toLocaleLowerCase('tr')
+            .includes(term),
+      ),
+    [rows, term],
+  )
+
+  /*
+   * Normalde sadece bir etiket seçiyoruz.
+   */
+  const chosen = rows.filter((m) => selected.includes(m.id))
+
+  const current = chosen[0] ?? null
+
+  const selectMaterial = (id: string) => {
+    setSelected([id])
+    setEditing(false)
+  }
+
+  const startEdit = () => {
+    if (!current) return
+
+    setEditName(current.name ?? '')
+    setEditSampleNo(current.sample_no ?? '')
+    setEditLotNo(current.lot_no ?? '')
+    setEditShelfCode(current.shelf_code ?? '')
 
     setEditing(true)
   }
 
   const cancelEdit = () => {
-    if (!material) return
-
-    setName(material.name ?? '')
-    setSampleNo(material.sample_no ?? '')
-    setLotNo(material.lot_no ?? '')
-    setShelfCode(material.shelf_code ?? '')
-
     setEditing(false)
   }
 
   const saveEdit = async () => {
-    if (!material) return
+    if (!current) return
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('materials')
       .update({
-        name,
-        sample_no: sampleNo,
-        lot_no: lotNo,
-        shelf_code: shelfCode,
+        name: editName,
+        sample_no: editSampleNo,
+        lot_no: editLotNo,
+        shelf_code: editShelfCode,
       })
-      .eq('id', material.id)
-      .select('*')
-      .single()
+      .eq('id', current.id)
 
     if (error) {
       console.error(error)
-      alert('Değişiklik kaydedilemedi: ' + error.message)
+      alert(`Değişiklik kaydedilemedi: ${error.message}`)
       return
     }
 
-    setMaterial(data as Material)
+    const updated: Material = {
+      ...current,
+      name: editName,
+      sample_no: editSampleNo,
+      lot_no: editLotNo,
+      shelf_code: editShelfCode,
+    }
+
+    setRows((prev) =>
+      prev.map((m) => (m.id === current.id ? updated : m)),
+    )
+
     setEditing(false)
 
     alert('Etiket bilgileri güncellendi.')
   }
 
-  if (loading) {
-    return (
-      <div className="card">
-        <div className="empty">
-          Etiket bilgileri yükleniyor...
-        </div>
-      </div>
-    )
-  }
-
-  if (!material) {
-    return (
-      <div className="card">
-        <div className="empty">
-          <strong>Etiket bulunamadı</strong>
-          URL içerisinde geçerli bir numune bulunamadı.
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
-      {/* EKRAN KONTROLLERİ */}
+      {/* ÜST MENÜ */}
       <div className="page-head no-print">
         <div>
-          <h1>QR Etiketi</h1>
-          <p>Tek etiket A4 kağıdının ortasına A6 boyutunda yazdırılır.</p>
+          <h1>QR Etiketleri</h1>
+          <p>
+            Bir numune seçin. Etiket A4 kağıdının ortasına yaklaşık A6
+            boyutunda tek adet olarak yazdırılır.
+          </p>
         </div>
 
         <div className="btn-row">
-          {!editing && (
+          {current && !editing && (
             <>
               <button
                 className="btn"
                 onClick={startEdit}
-                title="Etiketi düzenle"
               >
                 ✏️ Düzenle
               </button>
@@ -172,112 +174,281 @@ export default function Labels() {
         </div>
       </div>
 
+      {/* ARAMA / NUMUNE SEÇME */}
+      <div className="card mb no-print">
+        <div className="card-b">
+
+          <div className="row mb">
+            <div
+              className="field search-wide"
+              style={{ margin: 0 }}
+            >
+              <label>Ara</label>
+
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Hammadde, numune, lot veya raf"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                if (filtered.length > 0) {
+                  setSelected([filtered[0].id])
+                }
+              }}
+            >
+              İlk numuneyi seç
+            </button>
+
+            <button
+              onClick={() => setSelected([])}
+            >
+              Seçimi temizle
+            </button>
+          </div>
+
+          <div
+            className="table-wrap"
+            style={{
+              maxHeight: 320,
+              overflowY: 'auto',
+            }}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Numune</th>
+                  <th>Hammadde</th>
+                  <th>Lot</th>
+                  <th>Raf</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtered.map((m) => (
+                  <tr
+                    key={m.id}
+                    onClick={() => selectMaterial(m.id)}
+                    style={{
+                      cursor: 'pointer',
+                      background:
+                        selected.includes(m.id)
+                          ? 'rgba(0,0,0,0.05)'
+                          : undefined,
+                    }}
+                  >
+                    <td>
+                      <input
+                        type="radio"
+                        readOnly
+                        checked={selected.includes(m.id)}
+                        style={{ width: 16 }}
+                      />
+                    </td>
+
+                    <td className="mono">
+                      {m.sample_no}
+                    </td>
+
+                    <td>
+                      {m.name}
+                    </td>
+
+                    <td className="mono">
+                      {m.lot_no}
+                    </td>
+
+                    <td>
+                      <span className="chip">
+                        {m.shelf_code}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="small muted mt">
+            {current
+              ? `Seçilen numune: ${current.sample_no}`
+              : 'Henüz numune seçilmedi.'}
+          </p>
+        </div>
+      </div>
+
       {/* DÜZENLEME ALANI */}
-      {editing && (
-        <div className="card no-print mb">
+      {editing && current && (
+        <div className="card mb no-print">
           <div className="card-b">
+
             <h3>Etiket Bilgilerini Düzenle</h3>
 
-            <div className="form-grid">
-
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(2, minmax(0, 1fr))',
+                gap: 16,
+              }}
+            >
               <div className="field">
                 <label>Hammadde</label>
+
                 <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={editName}
+                  onChange={(e) =>
+                    setEditName(e.target.value)
+                  }
                 />
               </div>
 
               <div className="field">
                 <label>Numune</label>
+
                 <input
-                  value={sampleNo}
-                  onChange={(e) => setSampleNo(e.target.value)}
+                  value={editSampleNo}
+                  onChange={(e) =>
+                    setEditSampleNo(e.target.value)
+                  }
                 />
               </div>
 
               <div className="field">
                 <label>Lot</label>
+
                 <input
-                  value={lotNo}
-                  onChange={(e) => setLotNo(e.target.value)}
+                  value={editLotNo}
+                  onChange={(e) =>
+                    setEditLotNo(e.target.value)
+                  }
                 />
               </div>
 
               <div className="field">
                 <label>Raf</label>
+
                 <input
-                  value={shelfCode}
-                  onChange={(e) => setShelfCode(e.target.value)}
+                  value={editShelfCode}
+                  onChange={(e) =>
+                    setEditShelfCode(e.target.value)
+                  }
                 />
               </div>
-
             </div>
+
           </div>
         </div>
       )}
 
-      {/* A4 YAZDIRMA ALANI */}
-      <div className="print-page">
+      {/* A4 ÜZERİNDE TEK A6 ETİKET */}
+      {current && (
+        <div className="print-page">
 
-        {/* TEK A6 ETİKET */}
-        <div className="single-label">
+          <div className="single-label">
 
-          <div className="label-qr">
-            <QrImage
-              sampleNo={sampleNo}
-              size={260}
-            />
-          </div>
-
-          <div className="label-sample">
-            {sampleNo}
-          </div>
-
-          <div className="label-title">
-            AR-GE HAMMADDE
-          </div>
-
-          <div className="label-name">
-            {name}
-          </div>
-
-          <div className="label-info">
-            <div>
-              <span>Numune</span>
-              <strong>{sampleNo}</strong>
+            {/* QR */}
+            <div className="label-qr">
+              <QrImage
+                sampleNo={
+                  editing
+                    ? editSampleNo
+                    : current.sample_no
+                }
+                size={280}
+              />
             </div>
 
-            <div>
-              <span>Lot</span>
-              <strong>{lotNo}</strong>
+            {/* QR ALTINDA NUMUNE */}
+            <div className="label-sample">
+              {editing
+                ? editSampleNo
+                : current.sample_no}
             </div>
 
-            <div>
-              <span>Raf</span>
-              <strong>{shelfCode}</strong>
+            {/* BAŞLIK */}
+            <div className="label-title">
+              AR-GE HAMMADDE
             </div>
+
+            {/* HAMMADDE ADI */}
+            <div className="label-name">
+              {editing
+                ? editName
+                : current.name}
+            </div>
+
+            {/* BİLGİLER */}
+            <div className="label-info">
+
+              <div>
+                <span>Numune</span>
+
+                <strong>
+                  {editing
+                    ? editSampleNo
+                    : current.sample_no}
+                </strong>
+              </div>
+
+              <div>
+                <span>Lot</span>
+
+                <strong>
+                  {editing
+                    ? editLotNo
+                    : current.lot_no}
+                </strong>
+              </div>
+
+              <div>
+                <span>Raf</span>
+
+                <strong>
+                  {editing
+                    ? editShelfCode
+                    : current.shelf_code}
+                </strong>
+              </div>
+
+            </div>
+
           </div>
-
         </div>
-      </div>
+      )}
 
-      {/* YAZDIRMA STİLLERİ */}
+      {/* SEÇİM YOK */}
+      {!current && (
+        <div className="card no-print">
+          <div className="empty">
+            <strong>Etiket seçilmedi</strong>
+            Yukarıdaki listeden bir numune seçin.
+          </div>
+        </div>
+      )}
+
+      {/* STİLLER */}
       <style>{`
+
         .print-page {
           width: 210mm;
           height: 297mm;
           margin: 20px auto;
-          background: white;
+
           display: flex;
           align-items: center;
           justify-content: center;
-          box-sizing: border-box;
+
+          background: white;
         }
 
         .single-label {
           width: 105mm;
           height: 148mm;
+
           box-sizing: border-box;
 
           border: 1px solid #111;
@@ -288,7 +459,6 @@ export default function Labels() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-start;
 
           background: white;
           color: #111;
@@ -313,45 +483,66 @@ export default function Labels() {
 
         .label-sample {
           font-family: monospace;
+
           font-size: 5mm;
-          font-weight: 700;
+          font-weight: 800;
+
           letter-spacing: 0.4mm;
+
           margin-bottom: 4mm;
+
           text-align: center;
         }
 
         .label-title {
+          width: 100%;
+
+          text-align: center;
+
           font-size: 5mm;
           font-weight: 800;
+
           letter-spacing: 0.5mm;
+
           border-bottom: 1px solid #111;
+
           padding-bottom: 2mm;
-          width: 100%;
-          text-align: center;
         }
 
         .label-name {
+          width: 100%;
+
+          text-align: center;
+
           font-size: 6mm;
           font-weight: 800;
-          text-align: center;
+
           margin: 5mm 0 6mm;
+
           word-break: break-word;
         }
 
         .label-info {
           width: 100%;
+
           display: flex;
           flex-direction: column;
+
           gap: 3mm;
+
           border-top: 1px solid #ccc;
+
           padding-top: 5mm;
         }
 
         .label-info div {
           display: flex;
+
           justify-content: space-between;
           align-items: center;
+
           gap: 5mm;
+
           font-size: 4mm;
         }
 
@@ -361,7 +552,9 @@ export default function Labels() {
 
         .label-info strong {
           font-family: monospace;
+
           font-size: 4mm;
+
           text-align: right;
         }
 
@@ -376,11 +569,10 @@ export default function Labels() {
           body {
             width: 210mm;
             height: 297mm;
+
             margin: 0 !important;
             padding: 0 !important;
-          }
 
-          body {
             background: white !important;
           }
 
@@ -391,21 +583,26 @@ export default function Labels() {
           .print-page {
             width: 210mm;
             height: 297mm;
+
             margin: 0;
             padding: 0;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
             background: white;
           }
 
           .single-label {
             width: 105mm;
             height: 148mm;
+
             border: 1px solid #111;
             box-shadow: none;
           }
         }
+
       `}</style>
     </>
   )
