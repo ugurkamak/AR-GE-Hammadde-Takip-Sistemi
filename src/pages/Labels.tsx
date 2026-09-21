@@ -19,118 +19,53 @@ export default function Labels() {
   const [editUnit, setEditUnit] = useState('')
   const [editShelfCode, setEditShelfCode] = useState('')
 
-  /*
-   * Raf bilgisini mümkün olan tüm alanlardan bulur.
-   *
-   * Öncelik:
-   * 1. shelf_code
-   * 2. shelf_no + level_no + bin_no
-   */
-  const getShelfCode = (material: Material | null) => {
-    if (!material) return ''
-
-    if (material.shelf_code) {
-      return String(material.shelf_code)
-    }
-
-    const parts: string[] = []
-
-    if (
-      material.shelf_no !== null &&
-      material.shelf_no !== undefined
-    ) {
-      parts.push(`Raf ${material.shelf_no}`)
-    }
-
-    if (
-      material.level_no !== null &&
-      material.level_no !== undefined
-    ) {
-      parts.push(`Kat ${material.level_no}`)
-    }
-
-    if (
-      material.bin_no !== null &&
-      material.bin_no !== undefined
-    ) {
-      parts.push(`Göz ${material.bin_no}`)
-    }
-
-    return parts.join(' / ')
-  }
-
   useEffect(() => {
     const load = async () => {
-      /*
-       * Ana kayıtları materials tablosundan alıyoruz.
-       */
-      const { data: materialsData, error: materialsError } =
-        await supabase
-          .from('materials')
-          .select('*')
-          .order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('materials')
+        .select(
+          `
+          id,
+          sample_no,
+          name,
+          supplier,
+          product_code,
+          lot_no,
+          arrival_date,
+          initial_quantity,
+          unit,
+          package_info,
+          min_stock,
+          section,
+          shelf_no,
+          level_no,
+          bin_no,
+          shelf_code,
+          material_type,
+          pigment_type,
+          color,
+          technical_spec,
+          usage_purpose,
+          description,
+          status,
+          test_result,
+          created_by,
+          created_at,
+          updated_at
+          `,
+        )
+        .order('created_at', { ascending: false })
 
-      if (materialsError) {
-        console.error(materialsError)
+      if (error) {
+        console.error(error)
+        alert(`Hammadde bilgileri alınamadı: ${error.message}`)
         return
       }
 
-      /*
-       * materials_view içindeki shelf_code bilgisini de alıyoruz.
-       * Böylece eski sistemde raf kodu view üzerinden geliyorsa
-       * onu da kaybetmiyoruz.
-       */
-      const { data: viewData, error: viewError } =
-        await supabase
-          .from('materials_view')
-          .select('*')
-
-      if (viewError) {
-        console.warn(
-          'materials_view okunamadı:',
-          viewError.message,
-        )
-      }
-
-      const materialList =
-        (materialsData as Material[]) ?? []
-
-      const viewList =
-        (viewData as Material[]) ?? []
-
-      /*
-       * materials + materials_view birleştiriliyor.
-       *
-       * materials tablosundaki bilgiler esas alınır.
-       * shelf_code boşsa materials_view içindeki shelf_code
-       * kullanılır.
-       */
-      const viewMap = new Map(
-        viewList.map((item) => [
-          item.id,
-          item,
-        ]),
-      )
-
-      const list = materialList.map((material) => {
-        const viewMaterial = viewMap.get(material.id)
-
-        return {
-          ...material,
-
-          shelf_code:
-            material.shelf_code ||
-            viewMaterial?.shelf_code ||
-            '',
-        }
-      })
+      const list = (data as Material[]) ?? []
 
       setRows(list)
 
-      /*
-       * URL'den ?numune=ARGE-2026-0002 gibi geldiyse
-       * ilgili numuneyi otomatik seç.
-       */
       const pre = params.get('numune')
 
       if (pre) {
@@ -154,7 +89,7 @@ export default function Labels() {
       rows.filter(
         (m) =>
           !term ||
-          `${m.name} ${m.sample_no} ${m.lot_no} ${m.supplier} ${getShelfCode(m)}`
+          `${m.name} ${m.sample_no} ${m.lot_no} ${m.supplier} ${m.shelf_code}`
             .toLocaleLowerCase('tr')
             .includes(term),
       ),
@@ -162,7 +97,7 @@ export default function Labels() {
   )
 
   /*
-   * Sadece bir etiket seçiyoruz.
+   * Sadece bir numune seçiliyor.
    */
   const chosen = rows.filter((m) =>
     selected.includes(m.id),
@@ -184,16 +119,11 @@ export default function Labels() {
     setEditName(current.name ?? '')
     setEditSupplier(current.supplier ?? '')
     setEditArrivalDate(current.arrival_date ?? '')
-
     setEditInitialQuantity(
       String(current.initial_quantity ?? ''),
     )
-
     setEditUnit(current.unit ?? '')
-
-    setEditShelfCode(
-      getShelfCode(current),
-    )
+    setEditShelfCode(current.shelf_code ?? '')
 
     setEditing(true)
   }
@@ -245,8 +175,7 @@ export default function Labels() {
         name: editName.trim(),
         supplier: editSupplier.trim(),
         arrival_date: editArrivalDate,
-        initial_quantity:
-          Number(editInitialQuantity),
+        initial_quantity: Number(editInitialQuantity),
         unit: editUnit.trim(),
         shelf_code: editShelfCode.trim(),
       })
@@ -254,40 +183,23 @@ export default function Labels() {
 
     if (error) {
       console.error(error)
-
-      alert(
-        `Değişiklik kaydedilemedi: ${error.message}`,
-      )
-
+      alert(`Değişiklik kaydedilemedi: ${error.message}`)
       return
     }
 
     const updated: Material = {
       ...current,
-
       name: editName.trim(),
-
-      supplier:
-        editSupplier.trim(),
-
-      arrival_date:
-        editArrivalDate,
-
-      initial_quantity:
-        Number(editInitialQuantity),
-
-      unit:
-        editUnit.trim(),
-
-      shelf_code:
-        editShelfCode.trim(),
+      supplier: editSupplier.trim(),
+      arrival_date: editArrivalDate,
+      initial_quantity: Number(editInitialQuantity),
+      unit: editUnit.trim(),
+      shelf_code: editShelfCode.trim(),
     }
 
     setRows((prev) =>
       prev.map((m) =>
-        m.id === current.id
-          ? updated
-          : m,
+        m.id === current.id ? updated : m,
       ),
     )
 
@@ -297,7 +209,7 @@ export default function Labels() {
   }
 
   /*
-   * Tarihi Türkçe göster
+   * Tarihi Türkçe formatta göster
    */
   const formatDate = (value: string) => {
     if (!value) return '-'
@@ -311,14 +223,6 @@ export default function Labels() {
     return date.toLocaleDateString('tr-TR')
   }
 
-  /*
-   * Etikette gösterilecek raf
-   */
-  const currentShelfCode =
-    current
-      ? getShelfCode(current)
-      : ''
-
   return (
     <>
       {/* =====================================================
@@ -328,24 +232,18 @@ export default function Labels() {
       <div className="page-head no-print">
 
         <div>
-
-          <h1>
-            QR Etiketleri
-          </h1>
+          <h1>QR Etiketleri</h1>
 
           <p>
-            Bir numune seçin. Etiket A4 kağıdının
-            ortasına yaklaşık A6 boyutunda tek adet
-            olarak yazdırılır.
+            Bir numune seçin. Etiket A4 kağıdının ortasına
+            yaklaşık A6 boyutunda tek adet olarak yazdırılır.
           </p>
-
         </div>
 
         <div className="btn-row">
 
           {current && !editing && (
             <>
-
               <button
                 className="btn"
                 onClick={startEdit}
@@ -355,19 +253,15 @@ export default function Labels() {
 
               <button
                 className="btn-accent"
-                onClick={() =>
-                  window.print()
-                }
+                onClick={() => window.print()}
               >
                 Yazdır
               </button>
-
             </>
           )}
 
           {editing && (
             <>
-
               <button
                 className="btn"
                 onClick={cancelEdit}
@@ -381,7 +275,6 @@ export default function Labels() {
               >
                 Kaydet
               </button>
-
             </>
           )}
 
@@ -402,14 +295,9 @@ export default function Labels() {
 
             <div
               className="field search-wide"
-              style={{
-                margin: 0,
-              }}
+              style={{ margin: 0 }}
             >
-
-              <label>
-                Ara
-              </label>
+              <label>Ara</label>
 
               <input
                 value={q}
@@ -418,31 +306,20 @@ export default function Labels() {
                 }
                 placeholder="Hammadde, numune, lot veya raf"
               />
-
             </div>
-
 
             <button
               onClick={() => {
-
-                if (
-                  filtered.length > 0
-                ) {
-                  setSelected([
-                    filtered[0].id,
-                  ])
+                if (filtered.length > 0) {
+                  setSelected([filtered[0].id])
                 }
-
               }}
             >
               İlk numuneyi seç
             </button>
 
-
             <button
-              onClick={() =>
-                setSelected([])
-              }
+              onClick={() => setSelected([])}
             >
               Seçimi temizle
             </button>
@@ -463,29 +340,14 @@ export default function Labels() {
               <thead>
 
                 <tr>
-
                   <th></th>
-
-                  <th>
-                    Numune
-                  </th>
-
-                  <th>
-                    Hammadde
-                  </th>
-
-                  <th>
-                    Lot
-                  </th>
-
-                  <th>
-                    Raf
-                  </th>
-
+                  <th>Numune</th>
+                  <th>Hammadde</th>
+                  <th>Lot</th>
+                  <th>Raf</th>
                 </tr>
 
               </thead>
-
 
               <tbody>
 
@@ -498,11 +360,8 @@ export default function Labels() {
                     }
                     style={{
                       cursor: 'pointer',
-
                       background:
-                        selected.includes(
-                          m.id,
-                        )
+                        selected.includes(m.id)
                           ? 'rgba(0,0,0,0.05)'
                           : undefined,
                     }}
@@ -513,9 +372,7 @@ export default function Labels() {
                       <input
                         type="radio"
                         readOnly
-                        checked={selected.includes(
-                          m.id,
-                        )}
+                        checked={selected.includes(m.id)}
                         style={{
                           width: 16,
                         }}
@@ -523,29 +380,22 @@ export default function Labels() {
 
                     </td>
 
-
                     <td className="mono">
                       {m.sample_no}
                     </td>
-
 
                     <td>
                       {m.name}
                     </td>
 
-
                     <td className="mono">
                       {m.lot_no}
                     </td>
 
-
                     <td>
 
                       <span className="chip">
-
-                        {getShelfCode(m) ||
-                          '-'}
-
+                        {m.shelf_code || '-'}
                       </span>
 
                     </td>
@@ -588,19 +438,14 @@ export default function Labels() {
               Etiket Bilgilerini Düzenle
             </h3>
 
-
             <div
               style={{
                 display: 'grid',
-
                 gridTemplateColumns:
                   'repeat(2, minmax(0, 1fr))',
-
                 gap: 16,
               }}
             >
-
-              {/* HAMMADDE ADI */}
 
               <div className="field">
 
@@ -611,16 +456,12 @@ export default function Labels() {
                 <input
                   value={editName}
                   onChange={(e) =>
-                    setEditName(
-                      e.target.value,
-                    )
+                    setEditName(e.target.value)
                   }
                 />
 
               </div>
 
-
-              {/* FİRMA */}
 
               <div className="field">
 
@@ -631,16 +472,12 @@ export default function Labels() {
                 <input
                   value={editSupplier}
                   onChange={(e) =>
-                    setEditSupplier(
-                      e.target.value,
-                    )
+                    setEditSupplier(e.target.value)
                   }
                 />
 
               </div>
 
-
-              {/* GELİŞ TARİHİ */}
 
               <div className="field">
 
@@ -650,20 +487,14 @@ export default function Labels() {
 
                 <input
                   type="date"
-                  value={
-                    editArrivalDate
-                  }
+                  value={editArrivalDate}
                   onChange={(e) =>
-                    setEditArrivalDate(
-                      e.target.value,
-                    )
+                    setEditArrivalDate(e.target.value)
                   }
                 />
 
               </div>
 
-
-              {/* GELEN MİKTAR */}
 
               <div className="field">
 
@@ -675,20 +506,14 @@ export default function Labels() {
                   type="number"
                   min="0"
                   step="0.001"
-                  value={
-                    editInitialQuantity
-                  }
+                  value={editInitialQuantity}
                   onChange={(e) =>
-                    setEditInitialQuantity(
-                      e.target.value,
-                    )
+                    setEditInitialQuantity(e.target.value)
                   }
                 />
 
               </div>
 
-
-              {/* BİRİM */}
 
               <div className="field">
 
@@ -699,17 +524,13 @@ export default function Labels() {
                 <input
                   value={editUnit}
                   onChange={(e) =>
-                    setEditUnit(
-                      e.target.value,
-                    )
+                    setEditUnit(e.target.value)
                   }
                   placeholder="kg, L, adet..."
                 />
 
               </div>
 
-
-              {/* RAF KODU */}
 
               <div className="field">
 
@@ -720,11 +541,9 @@ export default function Labels() {
                 <input
                   value={editShelfCode}
                   onChange={(e) =>
-                    setEditShelfCode(
-                      e.target.value,
-                    )
+                    setEditShelfCode(e.target.value)
                   }
-                  placeholder="Örn: A-01-02"
+                  placeholder="Örn: C-01-01-01"
                 />
 
               </div>
@@ -748,15 +567,12 @@ export default function Labels() {
 
           <div className="single-label">
 
-
             {/* QR */}
 
             <div className="label-qr">
 
               <QrImage
-                sampleNo={
-                  current.sample_no
-                }
+                sampleNo={current.sample_no}
                 size={280}
               />
 
@@ -766,18 +582,14 @@ export default function Labels() {
             {/* QR ALTINDA NUMUNE */}
 
             <div className="label-sample">
-
               {current.sample_no}
-
             </div>
 
 
             {/* BAŞLIK */}
 
             <div className="label-title">
-
               AR-GE HAMMADDE
-
             </div>
 
 
@@ -792,14 +604,11 @@ export default function Labels() {
             </div>
 
 
-            {/* =================================================
-                BİLGİLER
-            ================================================== */}
+            {/* BİLGİLER */}
 
             <div className="label-info">
 
-
-              {/* HAMMADDE ADI */}
+              {/* Hammadde adı */}
 
               <div>
 
@@ -808,15 +617,17 @@ export default function Labels() {
                 </span>
 
                 <strong>
+
                   {editing
                     ? editName
                     : current.name}
+
                 </strong>
 
               </div>
 
 
-              {/* FİRMA / TEDARİKÇİ */}
+              {/* Firma / tedarikçi */}
 
               <div>
 
@@ -825,15 +636,17 @@ export default function Labels() {
                 </span>
 
                 <strong>
+
                   {editing
                     ? editSupplier
                     : current.supplier}
+
                 </strong>
 
               </div>
 
 
-              {/* GELİŞ TARİHİ */}
+              {/* Geliş tarihi */}
 
               <div>
 
@@ -842,19 +655,17 @@ export default function Labels() {
                 </span>
 
                 <strong>
+
                   {editing
-                    ? formatDate(
-                        editArrivalDate,
-                      )
-                    : formatDate(
-                        current.arrival_date,
-                      )}
+                    ? formatDate(editArrivalDate)
+                    : formatDate(current.arrival_date)}
+
                 </strong>
 
               </div>
 
 
-              {/* GELEN MİKTAR */}
+              {/* Gelen miktar */}
 
               <div>
 
@@ -879,7 +690,7 @@ export default function Labels() {
               </div>
 
 
-              {/* BİRİM */}
+              {/* Birim */}
 
               <div>
 
@@ -888,17 +699,17 @@ export default function Labels() {
                 </span>
 
                 <strong>
+
                   {editing
                     ? editUnit
                     : current.unit}
+
                 </strong>
 
               </div>
 
 
-              {/* =================================================
-                  RAF KODU
-              ================================================== */}
+              {/* RAF KODU */}
 
               <div className="label-shelf">
 
@@ -909,10 +720,8 @@ export default function Labels() {
                 <strong>
 
                   {editing
-                    ? editShelfCode ||
-                      '-'
-                    : currentShelfCode ||
-                      '-'}
+                    ? editShelfCode || '-'
+                    : current.shelf_code || '-'}
 
                 </strong>
 
@@ -927,9 +736,7 @@ export default function Labels() {
       )}
 
 
-      {/* =====================================================
-          SEÇİM YOK
-      ====================================================== */}
+      {/* SEÇİM YOK */}
 
       {!current && (
 
@@ -941,8 +748,7 @@ export default function Labels() {
               Etiket seçilmedi
             </strong>
 
-            Yukarıdaki listeden bir
-            numune seçin.
+            Yukarıdaki listeden bir numune seçin.
 
           </div>
 
@@ -951,9 +757,7 @@ export default function Labels() {
       )}
 
 
-      {/* =====================================================
-          STİLLER
-      ====================================================== */}
+      {/* STİLLER */}
 
       <style>{`
 
@@ -1138,11 +942,6 @@ export default function Labels() {
         }
 
 
-        /*
-         * RAF KODU
-         * Daha belirgin görünmesi için ayrı stil.
-         */
-
         .label-shelf {
 
           border-top: 1px solid #111;
@@ -1168,7 +967,6 @@ export default function Labels() {
           @page {
 
             size: A4 portrait;
-
             margin: 0;
 
           }
@@ -1178,11 +976,9 @@ export default function Labels() {
           body {
 
             width: 210mm;
-
             height: 297mm;
 
             margin: 0 !important;
-
             padding: 0 !important;
 
             background: white !important;
@@ -1200,17 +996,14 @@ export default function Labels() {
           .print-page {
 
             width: 210mm;
-
             height: 297mm;
 
             margin: 0;
-
             padding: 0;
 
             display: flex;
 
             align-items: center;
-
             justify-content: center;
 
             background: white;
@@ -1221,7 +1014,6 @@ export default function Labels() {
           .single-label {
 
             width: 105mm;
-
             height: 148mm;
 
             border: 1px solid #111;
