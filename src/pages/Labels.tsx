@@ -4,6 +4,11 @@ import { supabase } from '../lib/supabase'
 import QrImage from '../components/QrImage'
 import type { Material } from '../lib/types'
 
+type WarehouseSection = {
+  code: string
+  name: string
+}
+
 export default function Labels() {
   const [params] = useSearchParams()
 
@@ -11,6 +16,10 @@ export default function Labels() {
   const [selected, setSelected] = useState<string[]>([])
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(false)
+
+  const [warehouseSections, setWarehouseSections] = useState<
+    WarehouseSection[]
+  >([])
 
   const [editName, setEditName] = useState('')
   const [editSupplier, setEditSupplier] = useState('')
@@ -21,50 +30,74 @@ export default function Labels() {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
-        .from('materials')
-        .select(
-          `
-          id,
-          sample_no,
-          name,
-          supplier,
-          product_code,
-          lot_no,
-          arrival_date,
-          initial_quantity,
-          unit,
-          package_info,
-          min_stock,
-          section,
-          shelf_no,
-          level_no,
-          bin_no,
-          shelf_code,
-          material_type,
-          pigment_type,
-          color,
-          technical_spec,
-          usage_purpose,
-          description,
-          status,
-          test_result,
-          created_by,
-          created_at,
-          updated_at
-          `,
-        )
-        .order('created_at', { ascending: false })
+      const [
+        { data: materialsData, error: materialsError },
+        { data: sectionsData, error: sectionsError },
+      ] = await Promise.all([
+        supabase
+          .from('materials')
+          .select(
+            `
+            id,
+            sample_no,
+            name,
+            supplier,
+            product_code,
+            lot_no,
+            arrival_date,
+            initial_quantity,
+            unit,
+            package_info,
+            min_stock,
+            section,
+            shelf_no,
+            level_no,
+            bin_no,
+            shelf_code,
+            material_type,
+            pigment_type,
+            color,
+            technical_spec,
+            usage_purpose,
+            description,
+            status,
+            test_result,
+            created_by,
+            created_at,
+            updated_at
+            `,
+          )
+          .order('created_at', { ascending: false }),
 
-      if (error) {
-        console.error(error)
-        alert(`Hammadde bilgileri alınamadı: ${error.message}`)
+        supabase
+          .from('warehouse_sections')
+          .select('code, name')
+          .order('code', { ascending: true }),
+      ])
+
+      if (materialsError) {
+        console.error(materialsError)
+        alert(
+          `Hammadde bilgileri alınamadı: ${materialsError.message}`,
+        )
         return
       }
 
-      const list = (data as Material[]) ?? []
+      if (sectionsError) {
+        console.error(sectionsError)
+        alert(
+          `Depo bölümleri alınamadı: ${sectionsError.message}`,
+        )
+        return
+      }
+
+      const list = (materialsData as Material[]) ?? []
+
+      const sections =
+        (sectionsData as WarehouseSection[]) ?? []
 
       setRows(list)
+      setWarehouseSections(sections)
 
       const pre = params.get('numune')
 
@@ -103,18 +136,46 @@ export default function Labels() {
   const current = chosen[0] ?? null
 
   /*
-   * RAF SİSTEMİ
+   * AYARLAR → DEPO BÖLÜMLERİ
    *
-   * A = Yeşil Raf
-   * B = Mavi Raf
-   * C = Kırmızı Raf
+   * Bölüm adı artık kodun içinde sabit değil.
+   * warehouse_sections tablosundan okunuyor.
+   *
+   * Örnek:
+   * A → Yeşil Raf
+   * B → Mavi Raf
+   * C → Kırmızı Raf
+   * D → Sarı Raf
    */
+
+  const getSectionName = (
+    sectionCode: string | null | undefined,
+  ) => {
+    const code = String(sectionCode || '')
+      .trim()
+      .toUpperCase()
+
+    if (!code) return 'Raf'
+
+    const found = warehouseSections.find(
+      (section) =>
+        String(section.code || '')
+          .trim()
+          .toUpperCase() === code,
+    )
+
+    if (found?.name) {
+      return found.name
+    }
+
+    return 'Raf'
+  }
+
   const getShelfInfo = (material: Material | null) => {
     if (!material) {
       return {
         section: '',
         name: 'Raf',
-        colorClass: 'shelf-default',
         code: '-',
       }
     }
@@ -123,30 +184,8 @@ export default function Labels() {
       .trim()
       .toUpperCase()
 
-    let name = 'Raf'
-    let colorClass = 'shelf-default'
+    const name = getSectionName(section)
 
-    if (section === 'A') {
-      name = 'Yeşil Raf'
-      colorClass = 'shelf-green'
-    } else if (section === 'B') {
-      name = 'Mavi Raf'
-      colorClass = 'shelf-blue'
-    } else if (section === 'C') {
-      name = 'Kırmızı Raf'
-      colorClass = 'shelf-red'
-    }
-
-    /*
-     * Raf kodunu otomatik oluştur.
-     *
-     * Örnek:
-     * C + 1 + 1 + 1
-     * = C-01-01-01
-     *
-     * Eğer raf numaraları mevcut değilse eski
-     * shelf_code değeri korunur.
-     */
     const shelfNo =
       material.shelf_no !== null &&
       material.shelf_no !== undefined
@@ -165,6 +204,17 @@ export default function Labels() {
         ? Number(material.bin_no)
         : null
 
+    /*
+     * Raf kodu otomatik oluşturulur.
+     *
+     * Örnek:
+     * C + 1 + 1 + 1
+     * → C-01-01-01
+     *
+     * D + 4 + 1 + 8
+     * → D-04-01-08
+     */
+
     let code = material.shelf_code || '-'
 
     if (
@@ -176,15 +226,18 @@ export default function Labels() {
       !Number.isNaN(levelNo) &&
       !Number.isNaN(binNo)
     ) {
-      code = `${section}-${String(shelfNo).padStart(2, '0')}-${String(
-        levelNo,
-      ).padStart(2, '0')}-${String(binNo).padStart(2, '0')}`
+      code = `${section}-${String(shelfNo).padStart(
+        2,
+        '0',
+      )}-${String(levelNo).padStart(
+        2,
+        '0',
+      )}-${String(binNo).padStart(2, '0')}`
     }
 
     return {
       section,
       name,
-      colorClass,
       code,
     }
   }
@@ -208,7 +261,9 @@ export default function Labels() {
       String(current.initial_quantity ?? ''),
     )
     setEditUnit(current.unit ?? '')
-    setEditShelfCode(info.code === '-' ? '' : info.code)
+    setEditShelfCode(
+      info.code === '-' ? '' : info.code,
+    )
 
     setEditing(true)
   }
@@ -262,7 +317,9 @@ export default function Labels() {
 
     if (error) {
       console.error(error)
-      alert(`Değişiklik kaydedilemedi: ${error.message}`)
+      alert(
+        `Değişiklik kaydedilemedi: ${error.message}`,
+      )
       return
     }
 
@@ -610,9 +667,7 @@ export default function Labels() {
 
               <div className="label-row shelf-place-row">
                 <span>Raf Yeri</span>
-                <strong
-                  className={shelfInfo.colorClass}
-                >
+                <strong className="shelf-place-value">
                   {shelfInfo.section
                     ? `${shelfInfo.section} · ${shelfInfo.name}`
                     : '-'}
@@ -734,23 +789,7 @@ export default function Labels() {
             word-break: break-word;
           }
 
-          .shelf-green {
-            color: #16803c !important;
-            font-weight: 800 !important;
-          }
-
-          .shelf-blue {
-            color: #1769aa !important;
-            font-weight: 800 !important;
-          }
-
-          .shelf-red {
-            color: #d62828 !important;
-            font-weight: 800 !important;
-          }
-
-          .shelf-default {
-            color: #111 !important;
+          .shelf-place-value {
             font-weight: 800 !important;
           }
 
