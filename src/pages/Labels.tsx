@@ -500,20 +500,19 @@ export default function Labels() {
                 </strong>
               </div>
 
-              <div className="label-row">
-                <span>Gelen miktar</span>
-                <strong>
-                  {current.initial_quantity ?? '-'}{' '}
-                  {current.unit || ''}
-                </strong>
-              </div>
+<div className="label-row">
+  <span>Gelen miktar</span>
+  <strong>
+    {current.initial_quantity ?? '-'}
+  </strong>
+</div>
 
-              <div className="label-row">
-                <span>Birim</span>
-                <strong>
-                  {current.unit || '-'}
-                </strong>
-              </div>
+<div className="label-row">
+  <span>Birim</span>
+  <strong>
+    {current.unit || '-'}
+  </strong>
+</div>
 
               <div className="label-row shelf-row">
                 <span>Raf kodu</span>
