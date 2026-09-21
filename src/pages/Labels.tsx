@@ -1,4 +1,3 @@
-```tsx
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -325,4 +324,3 @@ export default function Labels() {
                           ? 'rgba(0,0,0,0.05)'
                           : undefined,
                     }}
-```
