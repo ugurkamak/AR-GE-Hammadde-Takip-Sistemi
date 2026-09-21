@@ -12,7 +12,6 @@ export default function Labels() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(false)
 
-  // Etiket düzenleme alanları
   const [editName, setEditName] = useState('')
   const [editSupplier, setEditSupplier] = useState('')
   const [editArrivalDate, setEditArrivalDate] = useState('')
@@ -23,7 +22,7 @@ export default function Labels() {
   useEffect(() => {
     const load = async () => {
       const { data, error } = await supabase
-        .from('materials_view')
+        .from('materials')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -36,8 +35,6 @@ export default function Labels() {
 
       setRows(list)
 
-      // MaterialDetail sayfasından ?numune=... ile gelindiyse
-      // ilgili numuneyi otomatik seç
       const pre = params.get('numune')
 
       if (pre) {
@@ -66,9 +63,6 @@ export default function Labels() {
     [rows, term],
   )
 
-  /*
-   * Sadece bir etiket seçiliyor.
-   */
   const chosen = rows.filter((m) => selected.includes(m.id))
 
   const current = chosen[0] ?? null
@@ -78,9 +72,6 @@ export default function Labels() {
     setEditing(false)
   }
 
-  /*
-   * Düzenleme ekranını aç
-   */
   const startEdit = () => {
     if (!current) return
 
@@ -96,16 +87,10 @@ export default function Labels() {
     setEditing(true)
   }
 
-  /*
-   * Düzenlemeyi iptal et
-   */
   const cancelEdit = () => {
     setEditing(false)
   }
 
-  /*
-   * Değişiklikleri Supabase'e kaydet
-   */
   const saveEdit = async () => {
     if (!current) return
 
@@ -176,9 +161,6 @@ export default function Labels() {
     alert('Etiket bilgileri güncellendi.')
   }
 
-  /*
-   * Tarihi Türkçe formatta göster
-   */
   const formatDate = (value: string) => {
     if (!value) return '-'
 
@@ -193,9 +175,7 @@ export default function Labels() {
 
   return (
     <>
-      {/* =====================================================
-          ÜST MENÜ
-      ====================================================== */}
+      {/* ÜST MENÜ */}
       <div className="page-head no-print">
         <div>
           <h1>QR Etiketleri</h1>
@@ -208,7 +188,6 @@ export default function Labels() {
 
         <div className="btn-row">
 
-          {/* NORMAL DURUM */}
           {current && !editing && (
             <>
               <button
@@ -227,7 +206,6 @@ export default function Labels() {
             </>
           )}
 
-          {/* DÜZENLEME DURUMU */}
           {editing && (
             <>
               <button
@@ -249,9 +227,7 @@ export default function Labels() {
         </div>
       </div>
 
-      {/* =====================================================
-          ARAMA / NUMUNE SEÇME
-      ====================================================== */}
+      {/* ARAMA / NUMUNE SEÇME */}
       <div className="card mb no-print">
         <div className="card-b">
 
@@ -345,7 +321,7 @@ export default function Labels() {
 
                     <td>
                       <span className="chip">
-                        {m.shelf_code}
+                        {m.shelf_code || '-'}
                       </span>
                     </td>
 
@@ -366,9 +342,7 @@ export default function Labels() {
         </div>
       </div>
 
-      {/* =====================================================
-          DÜZENLEME ALANI
-      ====================================================== */}
+      {/* DÜZENLEME ALANI */}
       {editing && current && (
         <div className="card mb no-print">
 
@@ -385,11 +359,8 @@ export default function Labels() {
               }}
             >
 
-              {/* Hammadde adı */}
               <div className="field">
-                <label>
-                  Hammadde adı *
-                </label>
+                <label>Hammadde adı *</label>
 
                 <input
                   value={editName}
@@ -399,11 +370,8 @@ export default function Labels() {
                 />
               </div>
 
-              {/* Firma / tedarikçi */}
               <div className="field">
-                <label>
-                  Firma / tedarikçi *
-                </label>
+                <label>Firma / tedarikçi *</label>
 
                 <input
                   value={editSupplier}
@@ -413,11 +381,8 @@ export default function Labels() {
                 />
               </div>
 
-              {/* Geliş tarihi */}
               <div className="field">
-                <label>
-                  Geliş tarihi *
-                </label>
+                <label>Geliş tarihi *</label>
 
                 <input
                   type="date"
@@ -428,11 +393,8 @@ export default function Labels() {
                 />
               </div>
 
-              {/* Gelen miktar */}
               <div className="field">
-                <label>
-                  Gelen miktar *
-                </label>
+                <label>Gelen miktar *</label>
 
                 <input
                   type="number"
@@ -445,11 +407,8 @@ export default function Labels() {
                 />
               </div>
 
-              {/* Birim */}
               <div className="field">
-                <label>
-                  Birim *
-                </label>
+                <label>Birim *</label>
 
                 <input
                   value={editUnit}
@@ -460,17 +419,15 @@ export default function Labels() {
                 />
               </div>
 
-              {/* Raf kodu */}
               <div className="field">
-                <label>
-                  Raf kodu
-                </label>
+                <label>Raf kodu</label>
 
                 <input
                   value={editShelfCode}
                   onChange={(e) =>
                     setEditShelfCode(e.target.value)
                   }
+                  placeholder="Örn: A-01-02"
                 />
               </div>
 
@@ -480,9 +437,7 @@ export default function Labels() {
         </div>
       )}
 
-      {/* =====================================================
-          A4 ÜZERİNDE TEK A6 ETİKET
-      ====================================================== */}
+      {/* A4 ÜZERİNDE TEK A6 ETİKET */}
       {current && (
         <div className="print-page">
 
@@ -515,9 +470,7 @@ export default function Labels() {
                 : current.name}
             </div>
 
-            {/* =================================================
-                ETİKET BİLGİLERİ
-            ================================================== */}
+            {/* BİLGİLER */}
             <div className="label-info">
 
               {/* Hammadde adı */}
@@ -567,8 +520,12 @@ export default function Labels() {
 
                 <strong>
                   {editing
-                    ? `${editInitialQuantity} ${editUnit}`
-                    : `${current.initial_quantity} ${current.unit}`}
+                    ? editInitialQuantity
+                    : current.initial_quantity}
+                  {' '}
+                  {editing
+                    ? editUnit
+                    : current.unit}
                 </strong>
               </div>
 
@@ -585,7 +542,7 @@ export default function Labels() {
                 </strong>
               </div>
 
-              {/* Raf kodu */}
+              {/* RAF KODU */}
               <div>
                 <span>
                   Raf kodu
@@ -593,8 +550,8 @@ export default function Labels() {
 
                 <strong>
                   {editing
-                    ? editShelfCode
-                    : current.shelf_code}
+                    ? editShelfCode || '-'
+                    : current.shelf_code || '-'}
                 </strong>
               </div>
 
@@ -604,9 +561,7 @@ export default function Labels() {
         </div>
       )}
 
-      {/* =====================================================
-          SEÇİM YOK
-      ====================================================== */}
+      {/* SEÇİM YOK */}
       {!current && (
         <div className="card no-print">
 
@@ -623,9 +578,7 @@ export default function Labels() {
         </div>
       )}
 
-      {/* =====================================================
-          STİLLER
-      ====================================================== */}
+      {/* STİLLER */}
       <style>{`
 
         .print-page {
