@@ -324,3 +324,377 @@ export default function Labels() {
                           ? 'rgba(0,0,0,0.05)'
                           : undefined,
                     }}
+                  >
+                    <td>
+                      <input
+                        type="radio"
+                        checked={selected.includes(m.id)}
+                        onChange={() =>
+                          selectMaterial(m.id)
+                        }
+                        onClick={(e) =>
+                          e.stopPropagation()
+                        }
+                      />
+                    </td>
+
+                    <td>{m.sample_no}</td>
+                    <td>{m.name}</td>
+                    <td>{m.lot_no}</td>
+                    <td>{m.shelf_code || '-'}</td>
+                  </tr>
+                ))}
+
+                {filtered.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      style={{
+                        textAlign: 'center',
+                        padding: 20,
+                      }}
+                    >
+                      Hammadde bulunamadı.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {editing && current && (
+        <div className="card mb no-print">
+          <div className="card-b">
+            <h3>Etiket Bilgilerini Düzenle</h3>
+
+            <div className="grid-2">
+              <div className="field">
+                <label>Hammadde adı *</label>
+                <input
+                  value={editName}
+                  onChange={(e) =>
+                    setEditName(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Firma / tedarikçi *</label>
+                <input
+                  value={editSupplier}
+                  onChange={(e) =>
+                    setEditSupplier(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Geliş tarihi *</label>
+                <input
+                  type="date"
+                  value={editArrivalDate}
+                  onChange={(e) =>
+                    setEditArrivalDate(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Gelen miktar *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={editInitialQuantity}
+                  onChange={(e) =>
+                    setEditInitialQuantity(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Birim *</label>
+                <input
+                  value={editUnit}
+                  onChange={(e) =>
+                    setEditUnit(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Raf kodu</label>
+                <input
+                  value={editShelfCode}
+                  onChange={(e) =>
+                    setEditShelfCode(e.target.value)
+                  }
+                  placeholder="Örn. C-01-01-01"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {current && !editing && (
+        <div className="no-print" style={{ marginBottom: 20 }}>
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: '#fff8d8',
+              border: '1px solid #eadf9a',
+              fontSize: 14,
+            }}
+          >
+            Seçili numune:{' '}
+            <strong>{current.sample_no}</strong>
+            {' — '}
+            {current.name}
+            {' — Raf: '}
+            <strong>{current.shelf_code || '-'}</strong>
+          </div>
+        </div>
+      )}
+
+      {current && !editing && (
+        <div className="label-print-area">
+          <div className="single-label">
+            <div className="label-header">
+              AR-GE HAMMADDE
+            </div>
+
+            <div className="label-qr">
+              <QrImage
+                sampleNo={current.sample_no}
+                size={48 * 3}
+              />
+            </div>
+
+            <div className="label-sample">
+              {current.sample_no}
+            </div>
+
+            <div className="label-info">
+              <div className="label-row">
+                <span>Hammadde adı</span>
+                <strong>
+                  {current.name || '-'}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Firma / tedarikçi</span>
+                <strong>
+                  {current.supplier || '-'}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Geliş tarihi</span>
+                <strong>
+                  {formatDate(current.arrival_date)}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Gelen miktar</span>
+                <strong>
+                  {current.initial_quantity ?? '-'}{' '}
+                  {current.unit || ''}
+                </strong>
+              </div>
+
+              <div className="label-row">
+                <span>Birim</span>
+                <strong>
+                  {current.unit || '-'}
+                </strong>
+              </div>
+
+              <div className="label-row shelf-row">
+                <span>Raf kodu</span>
+                <strong>
+                  {current.shelf_code || '-'}
+                </strong>
+              </div>
+            </div>
+
+            <div className="label-footer">
+              AR-GE Hammadde Takip Sistemi
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>
+        {`
+          .label-print-area {
+            width: 100%;
+            min-height: 620px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+
+          .single-label {
+            width: 105mm;
+            height: 148mm;
+            box-sizing: border-box;
+            background: white;
+            border: 1px solid #222;
+            border-radius: 3mm;
+            padding: 6mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            color: #111;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+
+          .label-header {
+            width: 100%;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 3mm;
+          }
+
+          .label-qr {
+            width: 48mm;
+            height: 48mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2mm;
+            flex-shrink: 0;
+          }
+
+          .label-qr img {
+            width: 48mm !important;
+            height: 48mm !important;
+            display: block;
+          }
+
+          .label-sample {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-align: center;
+            margin-bottom: 3mm;
+            flex-shrink: 0;
+          }
+
+          .label-info {
+            width: 100%;
+            border-top: 1px solid #222;
+            border-left: 1px solid #222;
+            flex-shrink: 0;
+          }
+
+          .label-row {
+            width: 100%;
+            min-height: 8mm;
+            display: grid;
+            grid-template-columns: 39% 61%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #222;
+          }
+
+          .label-row span {
+            box-sizing: border-box;
+            padding: 1.7mm 2mm;
+            background: #f1f1f1;
+            border-right: 1px solid #222;
+            font-size: 8.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+          }
+
+          .label-row strong {
+            box-sizing: border-box;
+            padding: 1.7mm 2mm;
+            font-size: 9.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+          .label-footer {
+            margin-top: auto;
+            padding-top: 2mm;
+            font-size: 7.5px;
+            color: #555;
+            text-align: center;
+            flex-shrink: 0;
+          }
+
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+
+            html,
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 210mm;
+              height: 297mm;
+              background: white !important;
+            }
+
+            body * {
+              visibility: hidden;
+            }
+
+            .label-print-area,
+            .label-print-area * {
+              visibility: visible;
+            }
+
+            .label-print-area {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 210mm;
+              height: 297mm;
+              min-height: 297mm;
+              padding: 0;
+              margin: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: white;
+            }
+
+            .single-label {
+              width: 105mm;
+              height: 148mm;
+              margin: 0;
+              padding: 6mm;
+              border: 1px solid #222;
+              border-radius: 3mm;
+              box-shadow: none;
+              overflow: hidden;
+            }
+
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+    </>
+  )
+}
