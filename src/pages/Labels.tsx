@@ -12,9 +12,12 @@ export default function Labels() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(false)
 
+  // Etiket düzenleme alanları
   const [editName, setEditName] = useState('')
-  const [editSampleNo, setEditSampleNo] = useState('')
-  const [editLotNo, setEditLotNo] = useState('')
+  const [editSupplier, setEditSupplier] = useState('')
+  const [editArrivalDate, setEditArrivalDate] = useState('')
+  const [editInitialQuantity, setEditInitialQuantity] = useState('')
+  const [editUnit, setEditUnit] = useState('')
   const [editShelfCode, setEditShelfCode] = useState('')
 
   useEffect(() => {
@@ -30,8 +33,11 @@ export default function Labels() {
       }
 
       const list = (data as Material[]) ?? []
+
       setRows(list)
 
+      // MaterialDetail sayfasından ?numune=... ile gelindiyse
+      // ilgili numuneyi otomatik seç
       const pre = params.get('numune')
 
       if (pre) {
@@ -61,7 +67,7 @@ export default function Labels() {
   )
 
   /*
-   * Normalde sadece bir etiket seçiyoruz.
+   * Sadece bir etiket seçiliyor.
    */
   const chosen = rows.filter((m) => selected.includes(m.id))
 
@@ -72,31 +78,74 @@ export default function Labels() {
     setEditing(false)
   }
 
+  /*
+   * Düzenleme ekranını aç
+   */
   const startEdit = () => {
     if (!current) return
 
     setEditName(current.name ?? '')
-    setEditSampleNo(current.sample_no ?? '')
-    setEditLotNo(current.lot_no ?? '')
+    setEditSupplier(current.supplier ?? '')
+    setEditArrivalDate(current.arrival_date ?? '')
+    setEditInitialQuantity(
+      String(current.initial_quantity ?? ''),
+    )
+    setEditUnit(current.unit ?? '')
     setEditShelfCode(current.shelf_code ?? '')
 
     setEditing(true)
   }
 
+  /*
+   * Düzenlemeyi iptal et
+   */
   const cancelEdit = () => {
     setEditing(false)
   }
 
+  /*
+   * Değişiklikleri Supabase'e kaydet
+   */
   const saveEdit = async () => {
     if (!current) return
+
+    if (!editName.trim()) {
+      alert('Hammadde adı zorunludur.')
+      return
+    }
+
+    if (!editSupplier.trim()) {
+      alert('Firma / tedarikçi zorunludur.')
+      return
+    }
+
+    if (!editArrivalDate) {
+      alert('Geliş tarihi zorunludur.')
+      return
+    }
+
+    if (
+      !editInitialQuantity ||
+      Number(editInitialQuantity) <= 0
+    ) {
+      alert('Gelen miktar 0’dan büyük olmalıdır.')
+      return
+    }
+
+    if (!editUnit.trim()) {
+      alert('Birim zorunludur.')
+      return
+    }
 
     const { error } = await supabase
       .from('materials')
       .update({
-        name: editName,
-        sample_no: editSampleNo,
-        lot_no: editLotNo,
-        shelf_code: editShelfCode,
+        name: editName.trim(),
+        supplier: editSupplier.trim(),
+        arrival_date: editArrivalDate,
+        initial_quantity: Number(editInitialQuantity),
+        unit: editUnit.trim(),
+        shelf_code: editShelfCode.trim(),
       })
       .eq('id', current.id)
 
@@ -108,14 +157,18 @@ export default function Labels() {
 
     const updated: Material = {
       ...current,
-      name: editName,
-      sample_no: editSampleNo,
-      lot_no: editLotNo,
-      shelf_code: editShelfCode,
+      name: editName.trim(),
+      supplier: editSupplier.trim(),
+      arrival_date: editArrivalDate,
+      initial_quantity: Number(editInitialQuantity),
+      unit: editUnit.trim(),
+      shelf_code: editShelfCode.trim(),
     }
 
     setRows((prev) =>
-      prev.map((m) => (m.id === current.id ? updated : m)),
+      prev.map((m) =>
+        m.id === current.id ? updated : m,
+      ),
     )
 
     setEditing(false)
@@ -123,19 +176,39 @@ export default function Labels() {
     alert('Etiket bilgileri güncellendi.')
   }
 
+  /*
+   * Tarihi Türkçe formatta göster
+   */
+  const formatDate = (value: string) => {
+    if (!value) return '-'
+
+    const date = new Date(value)
+
+    if (Number.isNaN(date.getTime())) {
+      return value
+    }
+
+    return date.toLocaleDateString('tr-TR')
+  }
+
   return (
     <>
-      {/* ÜST MENÜ */}
+      {/* =====================================================
+          ÜST MENÜ
+      ====================================================== */}
       <div className="page-head no-print">
         <div>
           <h1>QR Etiketleri</h1>
+
           <p>
-            Bir numune seçin. Etiket A4 kağıdının ortasına yaklaşık A6
-            boyutunda tek adet olarak yazdırılır.
+            Bir numune seçin. Etiket A4 kağıdının ortasına
+            yaklaşık A6 boyutunda tek adet olarak yazdırılır.
           </p>
         </div>
 
         <div className="btn-row">
+
+          {/* NORMAL DURUM */}
           {current && !editing && (
             <>
               <button
@@ -154,6 +227,7 @@ export default function Labels() {
             </>
           )}
 
+          {/* DÜZENLEME DURUMU */}
           {editing && (
             <>
               <button
@@ -171,14 +245,18 @@ export default function Labels() {
               </button>
             </>
           )}
+
         </div>
       </div>
 
-      {/* ARAMA / NUMUNE SEÇME */}
+      {/* =====================================================
+          ARAMA / NUMUNE SEÇME
+      ====================================================== */}
       <div className="card mb no-print">
         <div className="card-b">
 
           <div className="row mb">
+
             <div
               className="field search-wide"
               style={{ margin: 0 }}
@@ -207,6 +285,7 @@ export default function Labels() {
             >
               Seçimi temizle
             </button>
+
           </div>
 
           <div
@@ -217,6 +296,7 @@ export default function Labels() {
             }}
           >
             <table>
+
               <thead>
                 <tr>
                   <th></th>
@@ -228,6 +308,7 @@ export default function Labels() {
               </thead>
 
               <tbody>
+
                 {filtered.map((m) => (
                   <tr
                     key={m.id}
@@ -240,6 +321,7 @@ export default function Labels() {
                           : undefined,
                     }}
                   >
+
                     <td>
                       <input
                         type="radio"
@@ -266,9 +348,12 @@ export default function Labels() {
                         {m.shelf_code}
                       </span>
                     </td>
+
                   </tr>
                 ))}
+
               </tbody>
+
             </table>
           </div>
 
@@ -277,12 +362,16 @@ export default function Labels() {
               ? `Seçilen numune: ${current.sample_no}`
               : 'Henüz numune seçilmedi.'}
           </p>
+
         </div>
       </div>
 
-      {/* DÜZENLEME ALANI */}
+      {/* =====================================================
+          DÜZENLEME ALANI
+      ====================================================== */}
       {editing && current && (
         <div className="card mb no-print">
+
           <div className="card-b">
 
             <h3>Etiket Bilgilerini Düzenle</h3>
@@ -295,8 +384,12 @@ export default function Labels() {
                 gap: 16,
               }}
             >
+
+              {/* Hammadde adı */}
               <div className="field">
-                <label>Hammadde</label>
+                <label>
+                  Hammadde adı *
+                </label>
 
                 <input
                   value={editName}
@@ -306,30 +399,72 @@ export default function Labels() {
                 />
               </div>
 
+              {/* Firma / tedarikçi */}
               <div className="field">
-                <label>Numune</label>
+                <label>
+                  Firma / tedarikçi *
+                </label>
 
                 <input
-                  value={editSampleNo}
+                  value={editSupplier}
                   onChange={(e) =>
-                    setEditSampleNo(e.target.value)
+                    setEditSupplier(e.target.value)
                   }
                 />
               </div>
 
+              {/* Geliş tarihi */}
               <div className="field">
-                <label>Lot</label>
+                <label>
+                  Geliş tarihi *
+                </label>
 
                 <input
-                  value={editLotNo}
+                  type="date"
+                  value={editArrivalDate}
                   onChange={(e) =>
-                    setEditLotNo(e.target.value)
+                    setEditArrivalDate(e.target.value)
                   }
                 />
               </div>
 
+              {/* Gelen miktar */}
               <div className="field">
-                <label>Raf</label>
+                <label>
+                  Gelen miktar *
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={editInitialQuantity}
+                  onChange={(e) =>
+                    setEditInitialQuantity(e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Birim */}
+              <div className="field">
+                <label>
+                  Birim *
+                </label>
+
+                <input
+                  value={editUnit}
+                  onChange={(e) =>
+                    setEditUnit(e.target.value)
+                  }
+                  placeholder="kg, L, adet..."
+                />
+              </div>
+
+              {/* Raf kodu */}
+              <div className="field">
+                <label>
+                  Raf kodu
+                </label>
 
                 <input
                   value={editShelfCode}
@@ -338,13 +473,16 @@ export default function Labels() {
                   }
                 />
               </div>
+
             </div>
 
           </div>
         </div>
       )}
 
-      {/* A4 ÜZERİNDE TEK A6 ETİKET */}
+      {/* =====================================================
+          A4 ÜZERİNDE TEK A6 ETİKET
+      ====================================================== */}
       {current && (
         <div className="print-page">
 
@@ -352,21 +490,17 @@ export default function Labels() {
 
             {/* QR */}
             <div className="label-qr">
+
               <QrImage
-                sampleNo={
-                  editing
-                    ? editSampleNo
-                    : current.sample_no
-                }
+                sampleNo={current.sample_no}
                 size={280}
               />
+
             </div>
 
             {/* QR ALTINDA NUMUNE */}
             <div className="label-sample">
-              {editing
-                ? editSampleNo
-                : current.sample_no}
+              {current.sample_no}
             </div>
 
             {/* BAŞLIK */}
@@ -381,31 +515,81 @@ export default function Labels() {
                 : current.name}
             </div>
 
-            {/* BİLGİLER */}
+            {/* =================================================
+                ETİKET BİLGİLERİ
+            ================================================== */}
             <div className="label-info">
 
+              {/* Hammadde adı */}
               <div>
-                <span>Numune</span>
+                <span>
+                  Hammadde adı
+                </span>
 
                 <strong>
                   {editing
-                    ? editSampleNo
-                    : current.sample_no}
+                    ? editName
+                    : current.name}
                 </strong>
               </div>
 
+              {/* Firma / tedarikçi */}
               <div>
-                <span>Lot</span>
+                <span>
+                  Firma / tedarikçi
+                </span>
 
                 <strong>
                   {editing
-                    ? editLotNo
-                    : current.lot_no}
+                    ? editSupplier
+                    : current.supplier}
                 </strong>
               </div>
 
+              {/* Geliş tarihi */}
               <div>
-                <span>Raf</span>
+                <span>
+                  Geliş tarihi
+                </span>
+
+                <strong>
+                  {editing
+                    ? formatDate(editArrivalDate)
+                    : formatDate(current.arrival_date)}
+                </strong>
+              </div>
+
+              {/* Gelen miktar */}
+              <div>
+                <span>
+                  Gelen miktar
+                </span>
+
+                <strong>
+                  {editing
+                    ? `${editInitialQuantity} ${editUnit}`
+                    : `${current.initial_quantity} ${current.unit}`}
+                </strong>
+              </div>
+
+              {/* Birim */}
+              <div>
+                <span>
+                  Birim
+                </span>
+
+                <strong>
+                  {editing
+                    ? editUnit
+                    : current.unit}
+                </strong>
+              </div>
+
+              {/* Raf kodu */}
+              <div>
+                <span>
+                  Raf kodu
+                </span>
 
                 <strong>
                   {editing
@@ -420,22 +604,34 @@ export default function Labels() {
         </div>
       )}
 
-      {/* SEÇİM YOK */}
+      {/* =====================================================
+          SEÇİM YOK
+      ====================================================== */}
       {!current && (
         <div className="card no-print">
+
           <div className="empty">
-            <strong>Etiket seçilmedi</strong>
+
+            <strong>
+              Etiket seçilmedi
+            </strong>
+
             Yukarıdaki listeden bir numune seçin.
+
           </div>
+
         </div>
       )}
 
-      {/* STİLLER */}
+      {/* =====================================================
+          STİLLER
+      ====================================================== */}
       <style>{`
 
         .print-page {
           width: 210mm;
           height: 297mm;
+
           margin: 20px auto;
 
           display: flex;
@@ -462,6 +658,8 @@ export default function Labels() {
 
           background: white;
           color: #111;
+
+          overflow: hidden;
         }
 
         .label-qr {
@@ -478,6 +676,7 @@ export default function Labels() {
         .label-qr img {
           width: 55mm !important;
           height: 55mm !important;
+
           object-fit: contain;
         }
 
@@ -548,6 +747,8 @@ export default function Labels() {
 
         .label-info span {
           font-weight: 700;
+
+          flex-shrink: 0;
         }
 
         .label-info strong {
@@ -556,6 +757,8 @@ export default function Labels() {
           font-size: 4mm;
 
           text-align: right;
+
+          word-break: break-word;
         }
 
         @media print {
@@ -599,6 +802,7 @@ export default function Labels() {
             height: 148mm;
 
             border: 1px solid #111;
+
             box-shadow: none;
           }
         }
