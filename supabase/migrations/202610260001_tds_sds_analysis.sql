@@ -39,34 +39,34 @@ alter table public.tds_sds_reports enable row level security;
 
 drop policy if exists "tds_sds_documents_select_own" on public.tds_sds_documents;
 create policy "tds_sds_documents_select_own" on public.tds_sds_documents
-  for select to authenticated using (owner_id = auth.uid() and public.is_active_user());
+  for select to authenticated using (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_documents_insert_own" on public.tds_sds_documents;
 create policy "tds_sds_documents_insert_own" on public.tds_sds_documents
-  for insert to authenticated with check (owner_id = auth.uid() and public.is_active_user());
+  for insert to authenticated with check (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_documents_delete_own" on public.tds_sds_documents;
 create policy "tds_sds_documents_delete_own" on public.tds_sds_documents
-  for delete to authenticated using (owner_id = auth.uid() and public.is_active_user());
+  for delete to authenticated using (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_reports_select_own" on public.tds_sds_reports;
 create policy "tds_sds_reports_select_own" on public.tds_sds_reports
-  for select to authenticated using (owner_id = auth.uid() and public.is_active_user());
+  for select to authenticated using (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_reports_insert_own" on public.tds_sds_reports;
 create policy "tds_sds_reports_insert_own" on public.tds_sds_reports
-  for insert to authenticated with check (owner_id = auth.uid() and public.is_active_user());
+  for insert to authenticated with check (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_reports_delete_own" on public.tds_sds_reports;
 create policy "tds_sds_reports_delete_own" on public.tds_sds_reports
-  for delete to authenticated using (owner_id = auth.uid() and public.is_active_user());
+  for delete to authenticated using (owner_id = auth.uid() and public.is_admin());
 
 drop policy if exists "tds_sds_private_select_own" on storage.objects;
 create policy "tds_sds_private_select_own" on storage.objects
   for select to authenticated using (
     bucket_id = 'tds-sds-private'
     and (storage.foldername(name))[1] = auth.uid()::text
-    and public.is_active_user()
+    and public.is_admin()
   );
 
 drop policy if exists "tds_sds_private_insert_own" on storage.objects;
@@ -74,7 +74,7 @@ create policy "tds_sds_private_insert_own" on storage.objects
   for insert to authenticated with check (
     bucket_id = 'tds-sds-private'
     and (storage.foldername(name))[1] = auth.uid()::text
-    and public.is_active_user()
+    and public.is_admin()
   );
 
 drop policy if exists "tds_sds_private_delete_own" on storage.objects;
@@ -82,5 +82,5 @@ create policy "tds_sds_private_delete_own" on storage.objects
   for delete to authenticated using (
     bucket_id = 'tds-sds-private'
     and (storage.foldername(name))[1] = auth.uid()::text
-    and public.is_active_user()
+    and public.is_admin()
   );
