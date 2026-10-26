@@ -35,7 +35,7 @@ export default function App() {
         <Route path="kullanim-testler" element={<UsageTests />} />
         <Route path="depo" element={<Warehouse />} />
         <Route path="raporlar" element={<Reports />} />
-        <Route path="dokuman-analiz" element={<DocumentAnalysis />} />
+        <Route path="dokuman-analiz" element={<ProtectedRoute adminOnly><DocumentAnalysis /></ProtectedRoute>} />
         <Route path="etiketler" element={<Labels />} />
         <Route path="kullanicilar" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
         <Route path="ayarlar" element={<Settings />} />
