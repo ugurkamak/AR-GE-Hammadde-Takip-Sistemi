@@ -152,6 +152,15 @@ export default function DocumentAnalysis() {
 
   const openSavedReport = (report: Report) => setActiveReport(report.report_json as ReportContent)
 
+  const openDocument = async (doc: DocumentRow) => {
+    const { data, error: signedError } = await supabase.storage.from('tds-sds-private').createSignedUrl(doc.storage_path, 60)
+    if (signedError || !data?.signedUrl) {
+      setError('Belge bağlantısı oluşturulamadı. Erişim iznini kontrol edin.')
+      return
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const exportExcel = async () => {
     if (!activeReport) return
     try {
@@ -280,7 +289,7 @@ export default function DocumentAnalysis() {
           <h3 style={{ fontSize: 14, marginTop: 0 }}>Yüklenen belgeler ({documents.length})</h3>
           <div className="archive-list">
             {documents.length === 0 && <p className="muted">Henüz belge yüklenmedi.</p>}
-            {documents.map((doc) => <div className="archive-item" key={doc.id}><div><strong>{doc.file_name}</strong><div className="muted">{doc.document_type.toUpperCase()} · {formatBytes(doc.file_size)} · {prettyDate(doc.created_at)}</div></div><span className="muted">Özel</span></div>)}
+            {documents.map((doc) => <div className="archive-item" key={doc.id}><div><strong>{doc.file_name}</strong><div className="muted">{doc.document_type.toUpperCase()} · {formatBytes(doc.file_size)} · {prettyDate(doc.created_at)}</div></div><button className="btn-secondary" onClick={() => void openDocument(doc)}>PDF aç</button></div>)}
           </div>
           <h3 style={{ fontSize: 14, margin: '22px 0 10px' }}>Önceki raporlar ({reports.length})</h3>
           <div className="archive-list">
