@@ -84,3 +84,6 @@ create policy "tds_sds_private_delete_own" on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
     and public.is_admin()
   );
+
+-- Explicit table grants; row-level security still restricts access to the active admin owner.
+grant select, insert, delete on public.tds_sds_documents, public.tds_sds_reports to authenticated;
