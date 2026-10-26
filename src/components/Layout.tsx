@@ -8,6 +8,7 @@ const MENU = [
   { to: '/hammadde-girisi', icon: '➕', label: 'Hammadde girisi', adminOnly: true },
   { to: '/qr-okut', icon: '📱', label: 'QR kod okut' },
   { to: '/kullanim-testler', icon: '🧪', label: 'Kullanim & testler' },
+  { to: '/dokuman-analiz', icon: '📄', label: 'TDS / SDS analiz' },
   { to: '/depo', icon: '📍', label: 'Depo / raflar' },
   { to: '/raporlar', icon: '📊', label: 'Raporlar' },
   { to: '/kullanicilar', icon: '👥', label: 'Kullanicilar', adminOnly: true },
