@@ -13,6 +13,7 @@ import Reports from './pages/Reports'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
 import Labels from './pages/Labels'
+import DocumentAnalysis from './pages/DocumentAnalysis'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="kullanim-testler" element={<UsageTests />} />
         <Route path="depo" element={<Warehouse />} />
         <Route path="raporlar" element={<Reports />} />
+        <Route path="dokuman-analiz" element={<DocumentAnalysis />} />
         <Route path="etiketler" element={<Labels />} />
         <Route path="kullanicilar" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
         <Route path="ayarlar" element={<Settings />} />
