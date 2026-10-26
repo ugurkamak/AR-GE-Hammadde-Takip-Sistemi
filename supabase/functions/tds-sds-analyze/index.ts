@@ -83,10 +83,10 @@ Deno.serve(async (req) => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_active")
+    .select("is_active, role")
     .eq("id", userData.user.id)
     .maybeSingle();
-  if (!profile?.is_active) return json({ error: "Bu kullanıcı için erişim etkin değil." }, 403);
+  if (!profile?.is_active || profile.role !== "admin") return json({ error: "Bu modüle yalnızca yetkili yönetici erişebilir." }, 403);
 
   let body: { mode?: Mode; documents?: InputDocument[] };
   try { body = await req.json(); } catch { return json({ error: "İstek gövdesi geçerli JSON değil." }, 400); }
